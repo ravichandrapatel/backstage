@@ -34,3 +34,7 @@ Images:
 Push uses `crane` + lab CA (`clusters/lab/certs/ca.crt`); registry path owner is lowercase `giteaadmin`.
 
 Production env for backend: `APP_BASE_URL`, `BACKEND_BASE_URL`, `POSTGRES_*`, `ARGOCD_*`.
+
+## Software Templates
+
+Scaffolder templates live in [`idp-backstage-templates`](https://github.com/ravichandrapatel/idp-backstage-templates).
