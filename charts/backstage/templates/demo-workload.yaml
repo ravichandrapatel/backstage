@@ -1,0 +1,56 @@
+{{- if .Values.demoWorkload.enabled }}
+# FILE_NAME: demo-workload.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.demoWorkload.name }}
+  namespace: {{ .Values.demoWorkload.namespace }}
+  labels:
+    app: {{ .Values.demoWorkload.name }}
+    backstage.io/kubernetes-id: {{ .Values.demoWorkload.name }}
+    {{- include "backstage.labels" . | nindent 4 }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Values.demoWorkload.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.demoWorkload.name }}
+        backstage.io/kubernetes-id: {{ .Values.demoWorkload.name }}
+    spec:
+      containers:
+        - name: nginx
+          image: {{ .Values.demoWorkload.image | quote }}
+          ports:
+            - name: http
+              containerPort: 80
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              memory: 64Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.demoWorkload.name }}
+  namespace: {{ .Values.demoWorkload.namespace }}
+  labels:
+    app: {{ .Values.demoWorkload.name }}
+    backstage.io/kubernetes-id: {{ .Values.demoWorkload.name }}
+    {{- include "backstage.labels" . | nindent 4 }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  selector:
+    app: {{ .Values.demoWorkload.name }}
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+{{- end }}

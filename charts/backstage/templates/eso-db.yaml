@@ -1,0 +1,34 @@
+{{- if .Values.externalSecrets.enabled }}
+# FILE_NAME: eso-db.yaml
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: {{ .Values.externalSecrets.database.secretName }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "backstage.labels" . | nindent 4 }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  refreshInterval: {{ .Values.externalSecrets.refreshInterval | quote }}
+  secretStoreRef:
+    name: {{ .Values.externalSecrets.secretStoreRef.name }}
+    kind: {{ .Values.externalSecrets.secretStoreRef.kind }}
+  target:
+    name: {{ .Values.externalSecrets.database.secretName }}
+    creationPolicy: Owner
+    template:
+      type: Opaque
+      data:
+        POSTGRES_USER: "{{ `{{ .username }}` }}"
+        POSTGRES_PASSWORD: "{{ `{{ .password }}` }}"
+  data:
+    - secretKey: username
+      remoteRef:
+        key: {{ .Values.externalSecrets.database.remoteKey | quote }}
+        property: username
+    - secretKey: password
+      remoteRef:
+        key: {{ .Values.externalSecrets.database.remoteKey | quote }}
+        property: password
+{{- end }}

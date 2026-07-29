@@ -1,0 +1,28 @@
+# dependencies / build
+node_modules/
+dist/
+dist-types/
+coverage/
+*.tsbuildinfo
+.yarn/cache/
+.yarn/install-state.gz
+
+# secrets / local
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*id_rsa*
+*.p12
+*.pfx
+**/kubeconfig
+**/kubeconfig.*
+*.tfstate
+*.tfstate.*
+**/service-account*.json
+**/secrets.local.yaml
+
+# misc
+.DS_Store
+*.log

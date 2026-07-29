@@ -1,0 +1,83 @@
+# FILE_NAME: app-config.production.yaml
+# DESCRIPTION: Lab production overrides (Gateway host + CNPG + Keycloak OIDC)
+# VERSION: 0.3.0
+
+app:
+  baseUrl: ${APP_BASE_URL}
+
+backend:
+  baseUrl: ${BACKEND_BASE_URL}
+  listen: ':7007'
+  csp:
+    connect-src: ["'self'", 'http:', 'https:']
+    frame-src: ["'self'", 'https://keycloak.devzero.local:8443']
+  cors:
+    origin: ${APP_BASE_URL}
+    methods: [GET, HEAD, PATCH, POST, PUT, DELETE]
+    credentials: true
+  database:
+    # One CNPG database; plugins use schemas (user cannot CREATE DATABASE)
+    client: pg
+    pluginDivisionMode: schema
+    connection:
+      host: ${POSTGRES_HOST}
+      port: ${POSTGRES_PORT}
+      user: ${POSTGRES_USER}
+      password: ${POSTGRES_PASSWORD}
+      database: backstage
+
+auth:
+  environment: production
+  session:
+    secret: ${AUTH_SESSION_SECRET}
+  providers:
+    guest:
+      dangerouslyAllowOutsideDevelopment: true
+    oidc:
+      production:
+        metadataUrl: https://keycloak.devzero.local:8443/realms/idp/.well-known/openid-configuration
+        clientId: ${AUTH_OIDC_CLIENT_ID}
+        clientSecret: ${AUTH_OIDC_CLIENT_SECRET}
+        prompt: auto
+        signIn:
+          resolvers:
+            - resolver: emailLocalPartMatchingUserEntityName
+              dangerouslyAllowSignInWithoutUserInCatalog: true
+
+catalog:
+  locations:
+    - type: file
+      target: ./examples/entities.yaml
+    - type: file
+      target: ./examples/template/template.yaml
+      rules:
+        - allow: [Template]
+    - type: file
+      target: ./examples/org.yaml
+      rules:
+        - allow: [User, Group]
+    - type: file
+      target: ./examples/cluster-labs.yaml
+      rules:
+        - allow: [Resource]
+
+# In-cluster SA auth (pod uses serviceAccountName: backstage)
+kubernetes:
+  serviceLocatorMethod:
+    type: multiTenant
+  clusterLocatorMethods:
+    - type: config
+      clusters:
+        - name: labs
+          title: kind-lab
+          url: https://kubernetes.default.svc
+          authProvider: serviceAccount
+          skipTLSVerify: true
+          skipMetricsLookup: true
+          customResources:
+            - group: tekton.dev
+              apiVersion: v1
+              plural: pipelineruns
+            - group: tekton.dev
+              apiVersion: v1
+              plural: taskruns
