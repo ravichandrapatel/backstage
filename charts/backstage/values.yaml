@@ -1,0 +1,140 @@
+# FILE_NAME: values.yaml
+# DESCRIPTION: Default values for DevZero lab Backstage chart
+# VERSION: 0.1.0
+
+nameOverride: ""
+fullnameOverride: ""
+
+# Create Namespace resource (disable when Argo CD / helm creates ns)
+createNamespace: true
+
+partOf: devzero-idp
+
+imagePullSecrets:
+  - name: gitea-registry
+
+# Lab Gitea registry pull secret (created when enabled)
+registryPullSecret:
+  create: false  # enable only via private overlay with real creds
+  name: gitea-registry
+  registry: ghcr.io  # override in private values
+  username: ""
+  password: ""  # NEVER commit real registry passwords
+# Lab CA mounted into backend for Keycloak / cluster TLS
+labTls:
+  create: false  # provide CA via private overlay / ExternalSecrets
+  secretName: lab-tls-ca
+  caCrt: ""
+# Cookie session secret for OIDC passport
+sessionSecret:
+  create: false  # set AUTH_SESSION_SECRET via ExternalSecrets
+  secretName: backstage-session
+  value: ""
+# External Secrets Operator → Vault
+externalSecrets:
+  enabled: true
+  refreshInterval: 1m
+  secretStoreRef:
+    name: vault-backend
+    kind: ClusterSecretStore
+  database:
+    secretName: backstage-db
+    remoteKey: idp/postgres/backstage
+  oidc:
+    secretName: backstage-oidc
+    remoteKey: idp/oidc/backstage
+
+rbac:
+  create: true
+  # ClusterRole / Binding names (cluster-scoped)
+  clusterRoleName: ""
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+app:
+  baseUrl: https://backstage.devzero.local:8443
+  authEnvironment: production
+  # Embedded into ConfigMap as app-config.production.yaml body (YAML string)
+  # Leave empty to use the chart default template below via config.inline
+  config: ""
+
+config:
+  # When app.config is empty, render from these knobs
+  keycloakFrameSrc: https://keycloak.devzero.local:8443
+  oidcMetadataUrl: https://keycloak.devzero.local:8443/realms/idp/.well-known/openid-configuration
+  databaseName: backstage
+  kubernetesCluster:
+    name: labs
+    title: kind-lab
+    url: https://kubernetes.default.svc
+    authProvider: serviceAccount
+    skipTLSVerify: true
+    skipMetricsLookup: true
+
+postgres:
+  host: idp-pg-rw.idp-data.svc.cluster.local
+  port: "5432"
+  # Secret keys expected on database secret
+  existingSecret: backstage-db
+  userKey: POSTGRES_USER
+  passwordKey: POSTGRES_PASSWORD
+
+oidc:
+  existingSecret: backstage-oidc
+  clientIdKey: AUTH_OIDC_CLIENT_ID
+  clientSecretKey: AUTH_OIDC_CLIENT_SECRET
+
+backend:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: gitea.devzero.local:8443/giteaadmin/backstage-backend
+    tag: latest
+    pullPolicy: Always
+  service:
+    port: 7007
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      memory: 2Gi
+  # Recreate avoids knex MigrationLocked on shared CNPG schemas
+  strategy:
+    type: Recreate
+
+frontend:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: gitea.devzero.local:8443/giteaadmin/backstage-frontend
+    tag: latest
+    pullPolicy: Always
+  service:
+    port: 80
+  resources:
+    requests:
+      cpu: 25m
+      memory: 32Mi
+    limits:
+      memory: 128Mi
+
+httpRoute:
+  enabled: true
+  name: ""
+  hostnames:
+    - backstage.devzero.local
+  parentRefs:
+    - name: lab
+      namespace: lab-gateway
+      sectionName: https
+
+# Optional labeled demo for Kubernetes plugin
+demoWorkload:
+  enabled: false
+  name: example-website
+  namespace: default
+  image: docker.io/library/nginx:1.27-alpine

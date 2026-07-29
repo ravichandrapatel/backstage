@@ -1,0 +1,14 @@
+# FILE_NAME: cluster-labs.yaml
+# DESCRIPTION: Lab cluster Resource for Kubernetes + Kyverno Policy Reporter plugins
+# VERSION: 0.1.0
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: labs
+  description: kind-lab cluster
+  annotations:
+    # Point at Policy Reporter API when installed (update host as needed)
+    kyverno.io/endpoint: http://policy-reporter.kyverno.svc.cluster.local:8080/
+spec:
+  type: kubernetes-cluster
+  owner: guests

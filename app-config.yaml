@@ -1,0 +1,149 @@
+app:
+  title: DevZero Backstage
+  baseUrl: http://localhost:3000
+
+  # Discover frontend plugins from packages/app/package.json
+  packages: all
+
+  extensions:
+    # Catalog index as root
+    - page:catalog:
+        config:
+          path: /
+    # Official Kubernetes entity tab
+    - entity-content:kubernetes/kubernetes
+    # Argo CD entity tab + overview card
+    - entity-content:argocd/ArgoCdPage
+    - entity-card:argocd/overviewCard
+    # Kyverno Policy Reporter entity tab
+    - entity-content:policy-reporter/policy-reporter:
+        config:
+          path: /kyverno
+          title: Kyverno
+    # Tekton Pipelines entity tab (CI)
+    - entity-content:tekton/tektonEntityContent:
+        config:
+          path: /ci-cd
+          title: CI/CD
+
+organization:
+  name: DevZero
+
+backend:
+  baseUrl: http://localhost:7007
+  listen:
+    port: 7007
+  csp:
+    connect-src: ["'self'", 'http:', 'https:']
+  cors:
+    origin: http://localhost:3000
+    methods: [GET, HEAD, PATCH, POST, PUT, DELETE]
+    credentials: true
+  database:
+    client: better-sqlite3
+    connection: ':memory:'
+  actions:
+    pluginSources:
+      - auth
+      - catalog
+      - scaffolder
+
+integrations:
+  github:
+    - host: github.com
+      token: ${GITHUB_TOKEN}
+  # Lab Gitea (scm for catalog / templates)
+  gitea:
+    - host: gitea.devzero.local:8443
+      baseUrl: https://gitea.devzero.local:8443
+      username: ${GITEA_USERNAME}
+      password: ${GITEA_PASSWORD}
+
+proxy:
+  endpoints:
+    # Optional direct Argo CD proxy fallback
+    '/argocd/api':
+      target: https://argocd.devzero.local:8443/api
+      changeOrigin: true
+      secure: false
+      headers:
+        Cookie: ${ARGOCD_AUTH_TOKEN}
+
+techdocs:
+  builder: 'local'
+  generator:
+    runIn: 'local'
+  publisher:
+    type: 'local'
+
+auth:
+  providers:
+    guest: {}
+  clientIdMetadataDocuments:
+    enabled: false
+
+scaffolder: {}
+
+catalog:
+  import:
+    entityFilename: catalog-info.yaml
+    pullRequestBranchName: backstage-integration
+  rules:
+    - allow: [Component, System, API, Resource, Location]
+  locations:
+    - type: file
+      target: ../../examples/entities.yaml
+    - type: file
+      target: ../../examples/template/template.yaml
+      rules:
+        - allow: [Template]
+    - type: file
+      target: ../../examples/org.yaml
+      rules:
+        - allow: [User, Group]
+    - type: file
+      target: ../../examples/cluster-labs.yaml
+      rules:
+        - allow: [Resource]
+
+# Official Kubernetes plugin (+ Tekton CRDs for CI plugin)
+kubernetes:
+  serviceLocatorMethod:
+    type: 'multiTenant'
+  clusterLocatorMethods:
+    - type: 'config'
+      clusters:
+        - name: labs
+          url: https://kubernetes.default.svc
+          authProvider: serviceAccount
+          skipTLSVerify: true
+          skipMetricsLookup: true
+          customResources:
+            - group: tekton.dev
+              apiVersion: v1
+              plural: pipelineruns
+            - group: tekton.dev
+              apiVersion: v1
+              plural: taskruns
+
+# Roadie Argo CD backend
+argocd:
+  username: ${ARGOCD_USERNAME}
+  password: ${ARGOCD_PASSWORD}
+  appLocatorMethods:
+    - type: 'config'
+      instances:
+        - name: labs
+          url: https://argocd.devzero.local:8443
+          token: ${ARGOCD_AUTH_TOKEN}
+
+# Kyverno Policy Reporter (optional auth headers)
+policyReporter:
+  requestHeaders: {}
+
+permission:
+  enabled: true
+
+mcpActions:
+  name: 'DevZero Backstage'
+  description: 'Catalog, templates, Kubernetes, Argo CD, Tekton, and Kyverno policy views'

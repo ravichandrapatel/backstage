@@ -1,0 +1,18 @@
+# FILE_NAME: Chart.yaml
+# DESCRIPTION: Helm chart for DevZero lab Backstage (split FE/BE + Gateway API)
+# VERSION: 0.1.0
+# AUTHORS: DevZero IDP
+apiVersion: v2
+name: backstage
+description: DevZero lab Backstage — nginx frontend + Node backend, Keycloak OIDC, Gateway API
+type: application
+version: 0.1.2
+appVersion: "1.53.0"
+keywords:
+  - backstage
+  - idp
+  - platform
+maintainers:
+  - name: DevZero IDP
+sources:
+  - https://gitea.devzero.local:8443/giteaAdmin/devzero-idp

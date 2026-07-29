@@ -1,0 +1,20 @@
+{{- if .Values.labTls.create }}
+# FILE_NAME: lab-tls-ca.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ .Values.labTls.secretName }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "backstage.labels" . | nindent 4 }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+type: Opaque
+stringData:
+  ca.crt: |
+{{- if .Values.labTls.caCrt }}
+{{ .Values.labTls.caCrt | nindent 4 }}
+{{- else }}
+{{ .Files.Get "files/lab-ca.crt" | nindent 4 }}
+{{- end }}
+{{- end }}

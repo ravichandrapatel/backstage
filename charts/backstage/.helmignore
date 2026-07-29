@@ -1,0 +1,7 @@
+# FILE_NAME: .helmignore
+.DS_Store
+.git/
+.gitignore
+*.md
+*.tgz
+scripts/

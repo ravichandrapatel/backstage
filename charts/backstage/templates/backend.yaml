@@ -1,0 +1,134 @@
+{{- if .Values.backend.enabled }}
+# FILE_NAME: backend.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "backstage.backendName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "backstage.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+    backstage.io/kubernetes-id: {{ include "backstage.backendName" . }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  replicas: {{ .Values.backend.replicaCount }}
+  strategy:
+    {{- toYaml .Values.backend.strategy | nindent 4 }}
+  # Keep selector stable to adopt pre-Helm Deployments (selector is immutable)
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "backstage.backendName" . }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "backstage.backendName" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/part-of: {{ .Values.partOf | quote }}
+        app.kubernetes.io/component: backend
+        backstage.io/kubernetes-id: {{ include "backstage.backendName" . }}
+    spec:
+      serviceAccountName: {{ include "backstage.serviceAccountName" . }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: backend
+          image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
+          imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.backend.service.port }}
+          volumeMounts:
+            - name: app-config
+              mountPath: /app/app-config.production.yaml
+              subPath: app-config.production.yaml
+              readOnly: true
+            {{- if .Values.labTls.create }}
+            - name: lab-tls-ca
+              mountPath: /etc/ssl/lab
+              readOnly: true
+            {{- end }}
+          env:
+            - name: APP_BASE_URL
+              value: {{ .Values.app.baseUrl | quote }}
+            - name: BACKEND_BASE_URL
+              value: {{ .Values.app.baseUrl | quote }}
+            - name: POSTGRES_HOST
+              value: {{ .Values.postgres.host | quote }}
+            - name: POSTGRES_PORT
+              value: {{ .Values.postgres.port | quote }}
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.postgres.existingSecret }}
+                  key: {{ .Values.postgres.userKey }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.postgres.existingSecret }}
+                  key: {{ .Values.postgres.passwordKey }}
+            - name: AUTH_OIDC_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.oidc.existingSecret }}
+                  key: {{ .Values.oidc.clientIdKey }}
+            - name: AUTH_OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.oidc.existingSecret }}
+                  key: {{ .Values.oidc.clientSecretKey }}
+            - name: AUTH_SESSION_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.sessionSecret.secretName }}
+                  key: AUTH_SESSION_SECRET
+            - name: NODE_ENV
+              value: production
+            {{- if .Values.labTls.create }}
+            - name: NODE_EXTRA_CA_CERTS
+              value: /etc/ssl/lab/ca.crt
+            {{- end }}
+          readinessProbe:
+            httpGet:
+              path: /.backstage/health/v1/readiness
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /.backstage/health/v1/liveness
+              port: http
+            initialDelaySeconds: 40
+            periodSeconds: 20
+          resources:
+            {{- toYaml .Values.backend.resources | nindent 12 }}
+      volumes:
+        - name: app-config
+          configMap:
+            name: {{ include "backstage.configMapName" . }}
+        {{- if .Values.labTls.create }}
+        - name: lab-tls-ca
+          secret:
+            secretName: {{ .Values.labTls.secretName }}
+        {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "backstage.backendName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "backstage.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  selector:
+    app.kubernetes.io/name: {{ include "backstage.backendName" . }}
+  ports:
+    - name: http
+      port: {{ .Values.backend.service.port }}
+      targetPort: http
+{{- end }}
