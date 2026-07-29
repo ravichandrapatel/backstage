@@ -46,18 +46,18 @@ auth:
 
 catalog:
   locations:
-    - type: file
-      target: ./examples/entities.yaml
+    - type: url
+      target: https://github.com/ravichandrapatel/idp-backstage-templates/blob/main/catalog/entities.yaml
     - type: url
       target: https://github.com/ravichandrapatel/idp-backstage-templates/blob/main/templates/example-nodejs/template.yaml
       rules:
         - allow: [Template]
-    - type: file
-      target: ./examples/org.yaml
+    - type: url
+      target: https://github.com/ravichandrapatel/idp-backstage-templates/blob/main/catalog/org.yaml
       rules:
         - allow: [User, Group]
-    - type: file
-      target: ./examples/cluster-labs.yaml
+    - type: url
+      target: https://github.com/ravichandrapatel/idp-backstage-templates/blob/main/catalog/cluster-labs.yaml
       rules:
         - allow: [Resource]
 
