@@ -44,7 +44,7 @@
     "@backstage/plugin-search-backend-module-techdocs": "^0.4.16",
     "@backstage/plugin-search-backend-node": "^1.4.6",
     "@backstage/plugin-signals-backend": "^0.3.17",
-    "@backstage/plugin-techdocs-backend": "^2.2.2",
+    "@backstage/plugin-techdocs-backend": "^2.2.4",
     "@backstage/plugin-user-settings-backend": "^0.4.5",
     "@kyverno/backstage-plugin-policy-reporter-backend": "^2.6.0",
     "@roadiehq/backstage-plugin-argo-cd-backend": "^4.8.0",
